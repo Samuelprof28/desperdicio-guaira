@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoramento de Desperdício Alimentar · Colégio Guaíra</title>
+<style>
+  :root {
+    --verde-escuro: #1b5e3f;
+    --verde-medio: #2e8b57;
+    --verde-claro: #e6f4ec;
+    --cinza-claro: #f4f6f5;
+    --cinza-borda: #dfe6e2;
+    --cinza-texto: #5a6b64;
+    --texto-escuro: #1f2b26;
+    --branco: #ffffff;
+    --vermelho: #c0392b;
+    --sombra: 0 1px 3px rgba(15, 40, 30, 0.08);
+    --raio: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--cinza-claro);
+    color: var(--texto-escuro);
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+    padding-bottom: 48px;
+  }
+
+  /* Cabeçalho */
+  .header {
+    background: linear-gradient(135deg, var(--verde-escuro), var(--verde-medio));
+    border-radius: var(--raio);
+    padding: 24px 20px;
+    color: var(--branco);
+    margin-bottom: 20px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 20px;
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  .header p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    opacity: 0.9;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    font-size: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffd400;
+  }
+  .status-dot.ok { background: #7ee787; }
+  .status-dot.erro { background: #ff7b72; }
+
+  /* Aviso de configuração */
+  .aviso-config {
+    background: #fff8e1;
+    border: 1px solid #ffe08a;
+    color: #7a5c00;
+    padding: 14px 16px;
+    border-radius: var(--raio);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .aviso-config strong { display: block; margin-bottom: 4px; }
+
+  /* Dashboard */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  @media (min-width: 620px) {
+    .dashboard { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .card {
+    background: var(--branco);
+    border: 1px solid var(--cinza-borda);
+    border-radius: var(--raio);
+    padding: 16px;
+    box-shadow: var(--sombra);
+  }
+
+  .card-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .card-label {
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--cinza-texto);
+  }
+
+  .card-icone {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--verde-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+
+  .card-valor {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--verde-escuro);
+  }
+
+  .card-valor small {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cinza-texto);
+  }
+
+  .card-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--cinza-texto);
+  }
+
+  /* Seções */
+  .secao {
+    background: var(--branco);
+    border: 1px solid var(--cinza-borda);
+    border-radius: var(--raio);
+    padding: 18px;
+    margin-bottom: 20px;
+    box-shadow: var(--sombra);
+  }
+
+  .secao-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .secao-subtitulo {
+    font-size: 13px;
+    color: var(--cinza-texto);
+    margin: 0 0 16px;
+  }
+
+  /* Formulário */
+  .campo {
+    margin-bottom: 14px;
+  }
+
+  .campo label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #33443c;
+  }
+
+  .campo input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    font-size: 15px;
+    background: var(--cinza-claro);
+  }
+
+  .campo input:focus {
+    outline: 2px solid var(--verde-medio);
+    outline-offset: 1px;
+    background: var(--branco);
+  }
+
+  .linha-dupla {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  @media (min-width: 560px) {
+    .linha-dupla { grid-template-columns: 1fr 1fr; }
+  }
+
+  .botao-salvar {
+    width: 100%;
+    padding: 15px;
+    background: var(--verde-medio);
+    color: var(--branco);
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .botao-salvar:hover { background: var(--verde-escuro); }
+  .botao-salvar:disabled { background: #a9c2b7; cursor: not-allowed; }
+
+  .mensagem {
+    margin-top: 10px;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .mensagem.sucesso { display: block; background: var(--verde-claro); color: var(--verde-escuro); }
+  .mensagem.erro { display: block; background: #fdecea; color: var(--vermelho); }
+
+  /* Tabela de histórico */
+  .tabela-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .contador-registros {
+    font-size: 12px;
+    color: var(--cinza-texto);
+    background: var(--cinza-claro);
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .tabela-wrapper {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 480px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 10px 8px;
+    color: var(--cinza-texto);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 2px solid var(--cinza-borda);
+  }
+
+  tbody td {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--cinza-borda);
+    vertical-align: top;
+  }
+
+  tbody tr:hover { background: var(--verde-claro); }
+
+  .peso-tag {
+    display: inline-block;
+    background: var(--verde-claro);
+    color: var(--verde-escuro);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .botao-excluir {
+    background: #fdecea;
+    color: var(--vermelho);
+    border: none;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .botao-excluir:hover { background: #f8c9c4; }
+
+  .estado-vazio {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--cinza-texto);
+    font-size: 13px;
+  }
+
+  .rodape {
+    text-align: center;
+    font-size: 12px;
+    color: var(--cinza-texto);
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header class="header">
+    <div class="header-top">
+      <div class="header-icon">🍽️</div>
+      <div>
+        <h1>Monitoramento de Desperdício Alimentar</h1>
+        <p>Colégio Guaíra · Consumo Consciente na Merenda Escolar</p>
+      </div>
+    </div>
+    <div class="status-badge" id="statusBadge">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusTexto">Conectando ao Firebase...</span>
+    </div>
+  </header>
+
+  <div class="aviso-config" id="avisoConfig" style="display:none;">
+    <strong>Configuração pendente</strong>
+    Preencha o objeto <code>firebaseConfig</code> no final deste arquivo com as chaves do seu projeto Firebase para que os registros sejam salvos.
+  </div>
+
+  <!-- Dashboard -->
+  <section class="dashboard">
+    <div class="card">
+      <div class="card-topo">
+        <span class="card-label">Total Desperdiçado</span>
+        <span class="card-icone">⚖️</span>
+      </div>
+      <div class="card-valor" id="cardTotal">0.0 <small>kg</small></div>
+      <div class="card-sub" id="cardTotalSub">Em 0 registros cadastrados</div>
+    </div>
+
+    <div class="card">
+      <div class="card-topo">
+        <span class="card-label">Média por Registro</span>
+        <span class="card-icone">📊</span>
+      </div>
+      <div class="card-valor" id="cardMedia">0.0 <small>kg</small></div>
+      <div class="card-sub" id="cardMediaSub">Calculada sobre todos os registros</div>
+    </div>
+
+    <div class="card">
+      <div class="card-topo">
+        <span class="card-label">Maior Desperdício</span>
+        <span class="card-icone">📈</span>
+      </div>
+      <div class="card-valor" id="cardMaior">0.0 <small>kg</small></div>
+      <div class="card-sub" id="cardMaiorSub">Nenhum dado ainda</div>
+    </div>
+  </section>
+
+  <!-- Formulário -->
+  <section class="secao">
+    <h2 class="secao-titulo">➕ Registrar Descarte de Merenda</h2>
+    <p class="secao-subtitulo">Insira os dados do descarte para armazenar no Firebase Firestore.</p>
+
+    <form id="formRegistro">
+      <div class="linha-dupla">
+        <div class="campo">
+          <label for="inputData">Data do Registro</label>
+          <input type="date" id="inputData" required>
+        </div>
+        <div class="campo">
+          <label for="inputPeso">Peso do Descarte (kg)</label>
+          <input type="number" id="inputPeso" step="0.1" min="0" placeholder="Ex: 8.5" required>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="inputCardapio">Cardápio do Dia</label>
+        <input type="text" id="inputCardapio" placeholder="Ex: Polenta com Carne Moída e Salada" required>
+      </div>
+
+      <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro no Firebase</button>
+      <div class="mensagem" id="mensagemForm"></div>
+    </form>
+  </section>
+
+  <!-- Histórico -->
+  <section class="secao">
+    <div class="tabela-topo">
+      <h2 class="secao-titulo" style="margin-bottom:0;">📋 Histórico de Registros</h2>
+      <span class="contador-registros" id="contadorRegistros">0 registros</span>
+    </div>
+
+    <div class="tabela-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Cardápio</th>
+            <th>Peso (kg)</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+          <!-- linhas geradas via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="estado-vazio" id="estadoVazio">
+      Nenhum registro encontrado. Cadastre o primeiro descarte no formulário acima.
+    </div>
+  </section>
+
+  <p class="rodape">Sistema de Monitoramento de Desperdício Alimentar · Colégio Guaíra</p>
+
+</div>
+
+<script type="module">
+  // =====================================================================
+  // IMPORTAÇÃO DO FIREBASE (via CDN, sintaxe modular)
+  // =====================================================================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    addDoc,
+    deleteDoc,
+    doc,
+    query,
+    orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // =====================================================================
+  // CONFIGURAÇÃO DO FIREBASE
+  // Preencha aqui as chaves do SEU projeto Firebase.
+  // Você encontra esses valores em: Console Firebase > Configurações do
+  // projeto > Geral > "Seus aplicativos" > SDK setup and configuration.
+  // =====================================================================
+  const firebaseConfig = {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  // Nome da coleção onde os registros serão guardados no Firestore
+  const NOME_COLECAO = "desperdicio_guaira";
+
+  // Elementos da tela que vamos atualizar com JavaScript
+  const statusDot = document.getElementById("statusDot");
+  const statusTexto = document.getElementById("statusTexto");
+  const avisoConfig = document.getElementById("avisoConfig");
+  const corpoTabela = document.getElementById("corpoTabela");
+  const estadoVazio = document.getElementById("estadoVazio");
+  const contadorRegistros = document.getElementById("contadorRegistros");
+  const formRegistro = document.getElementById("formRegistro");
+  const botaoSalvar = document.getElementById("botaoSalvar");
+  const mensagemForm = document.getElementById("mensagemForm");
+
+  // Guardamos aqui os registros já carregados, para usar nos cálculos
+  let listaRegistros = [];
+  let db = null;
+
+  // Data de hoje pré-preenchida no formulário
+  document.getElementById("inputData").valueAsDate = new Date();
+
+  // ---------------------------------------------------------------------
+  // Inicialização do Firebase
+  // ---------------------------------------------------------------------
+  function firebaseFoiConfigurado() {
+    return firebaseConfig.apiKey && firebaseConfig.projectId;
+  }
+
+  async function iniciarFirebase() {
+    if (!firebaseFoiConfigurado()) {
+      avisoConfig.style.display = "block";
+      statusDot.className = "status-dot erro";
+      statusTexto.textContent = "Firebase não configurado";
+      return;
+    }
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      statusDot.className = "status-dot ok";
+      statusTexto.textContent = "Conectado ao Firebase Firestore";
+      await carregarRegistros();
+    } catch (erro) {
+      console.error("Erro ao conectar no Firebase:", erro);
+      statusDot.className = "status-dot erro";
+      statusTexto.textContent = "Erro ao conectar no Firebase";
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Ler registros do Firestore (getDocs)
+  // ---------------------------------------------------------------------
+  async function carregarRegistros() {
+    if (!db) return;
+
+    try {
+      const referenciaColecao = collection(db, NOME_COLECAO);
+      const consulta = query(referenciaColecao, orderBy("data", "desc"));
+      const resultado = await getDocs(consulta);
+
+      listaRegistros = resultado.docs.map(function (documento) {
+        return {
+          id: documento.id,
+          data: documento.data().data,
+          cardapio: documento.data().cardapio,
+          peso: documento.data().peso
+        };
+      });
+
+      atualizarDashboard();
+      atualizarTabela();
+    } catch (erro) {
+      console.error("Erro ao carregar registros:", erro);
+      mostrarMensagem("erro", "Não foi possível carregar os registros do Firebase.");
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Calcular estatísticas do Dashboard usando reduce/forEach
+  // ---------------------------------------------------------------------
+  function atualizarDashboard() {
+    const cardTotal = document.getElementById("cardTotal");
+    const cardTotalSub = document.getElementById("cardTotalSub");
+    const cardMedia = document.getElementById("cardMedia");
+    const cardMediaSub = document.getElementById("cardMediaSub");
+    const cardMaior = document.getElementById("cardMaior");
+    const cardMaiorSub = document.getElementById("cardMaiorSub");
+
+    const totalRegistros = listaRegistros.length;
+
+    // Total desperdiçado: soma de todos os pesos com reduce()
+    const totalKg = listaRegistros.reduce(function (acumulado, registro) {
+      return acumulado + Number(registro.peso);
+    }, 0);
+
+    cardTotal.innerHTML = totalKg.toFixed(1) + " <small>kg</small>";
+    cardTotalSub.textContent = "Em " + totalRegistros + " registro(s) cadastrado(s)";
+
+    // Média: total dividido pela quantidade de registros
+    const mediaKg = totalRegistros > 0 ? totalKg / totalRegistros : 0;
+    cardMedia.innerHTML = mediaKg.toFixed(1) + " <small>kg</small>";
+    cardMediaSub.textContent = totalRegistros > 0
+      ? "Calculada sobre " + totalRegistros + " registro(s)"
+      : "Sem dados suficientes";
+
+    // Maior desperdício: usamos reduce() para achar o registro com maior peso
+    if (totalRegistros > 0) {
+      const registroMaisPesado = listaRegistros.reduce(function (maior, atual) {
+        return Number(atual.peso) > Number(maior.peso) ? atual : maior;
+      }, listaRegistros[0]);
+
+      cardMaior.innerHTML = Number(registroMaisPesado.peso).toFixed(1) + " <small>kg</small>";
+      cardMaiorSub.textContent = registroMaisPesado.cardapio;
+    } else {
+      cardMaior.innerHTML = "0.0 <small>kg</small>";
+      cardMaiorSub.textContent = "Nenhum dado ainda";
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Montar a tabela de histórico usando forEach
+  // ---------------------------------------------------------------------
+  function atualizarTabela() {
+    corpoTabela.innerHTML = "";
+
+    if (listaRegistros.length === 0) {
+      estadoVazio.style.display = "block";
+      contadorRegistros.textContent = "0 registros";
+      return;
+    }
+
+    estadoVazio.style.display = "none";
+    contadorRegistros.textContent = listaRegistros.length + " registro(s)";
+
+    listaRegistros.forEach(function (registro) {
+      const linha = document.createElement("tr");
+
+      const dataFormatada = formatarData(registro.data);
+
+      linha.innerHTML =
+        "<td>" + dataFormatada + "</td>" +
+        "<td>" + registro.cardapio + "</td>" +
+        "<td><span class='peso-tag'>" + Number(registro.peso).toFixed(1) + " kg</span></td>" +
+        "<td><button class='botao-excluir' data-id='" + registro.id + "'>Excluir</button></td>";
+
+      corpoTabela.appendChild(linha);
+    });
+
+    // Adiciona o evento de clique em cada botão "Excluir" recém-criado
+    const botoesExcluir = document.querySelectorAll(".botao-excluir");
+    botoesExcluir.forEach(function (botao) {
+      botao.addEventListener("click", function () {
+        const idRegistro = botao.getAttribute("data-id");
+        excluirRegistro(idRegistro);
+      });
+    });
+  }
+
+  function formatarData(dataTexto) {
+    // dataTexto chega no formato AAAA-MM-DD, convertemos para DD/MM/AAAA
+    const partes = dataTexto.split("-");
+    if (partes.length !== 3) return dataTexto;
+    return partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+
+  // ---------------------------------------------------------------------
+  // Salvar novo registro (addDoc)
+  // ---------------------------------------------------------------------
+  formRegistro.addEventListener("submit", async function (evento) {
+    evento.preventDefault();
+
+    if (!db) {
+      mostrarMensagem("erro", "Configure o Firebase antes de salvar registros.");
+      return;
+    }
+
+    const data = document.getElementById("inputData").value;
+    const cardapio = document.getElementById("inputCardapio").value.trim();
+    const peso = document.getElementById("inputPeso").value;
+
+    if (!data || !cardapio || !peso) {
+      mostrarMensagem("erro", "Preencha todos os campos antes de salvar.");
+      return;
+    }
+
+    botaoSalvar.disabled = true;
+    botaoSalvar.textContent = "Salvando...";
+
+    try {
+      const referenciaColecao = collection(db, NOME_COLECAO);
+      await addDoc(referenciaColecao, {
+        data: data,
+        cardapio: cardapio,
+        peso: Number(peso),
+        criadoEm: new Date().toISOString()
+      });
+
+      mostrarMensagem("sucesso", "Registro salvo com sucesso.");
+      formRegistro.reset();
+      document.getElementById("inputData").valueAsDate = new Date();
+
+      await carregarRegistros();
+    } catch (erro) {
+      console.error("Erro ao salvar registro:", erro);
+      mostrarMensagem("erro", "Não foi possível salvar o registro.");
+    } finally {
+      botaoSalvar.disabled = false;
+      botaoSalvar.textContent = "Salvar Registro no Firebase";
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Excluir registro (deleteDoc)
+  // ---------------------------------------------------------------------
+  async function excluirRegistro(id) {
+    if (!db) return;
+
+    const confirmar = window.confirm("Deseja realmente excluir este registro?");
+    if (!confirmar) return;
+
+    try {
+      const referenciaDocumento = doc(db, NOME_COLECAO, id);
+      await deleteDoc(referenciaDocumento);
+      await carregarRegistros();
+    } catch (erro) {
+      console.error("Erro ao excluir registro:", erro);
+      mostrarMensagem("erro", "Não foi possível excluir o registro.");
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Mensagens de feedback no formulário
+  // ---------------------------------------------------------------------
+  function mostrarMensagem(tipo, texto) {
+    mensagemForm.className = "mensagem " + tipo;
+    mensagemForm.textContent = texto;
+
+    setTimeout(function () {
+      mensagemForm.className = "mensagem";
+      mensagemForm.textContent = "";
+    }, 4000);
+  }
+
+  // Inicia tudo quando a página carrega
+  iniciarFirebase();
+</script>
+
+</body>
+</html>
