@@ -475,14 +475,27 @@
   // Você encontra esses valores em: Console Firebase > Configurações do
   // projeto > Geral > "Seus aplicativos" > SDK setup and configuration.
   // =====================================================================
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyAHJXX8bKwe4fomSoQA4PvVyW0qkrdSz9g",
   authDomain: "desperdicio-guaira.firebaseapp.com",
   projectId: "desperdicio-guaira",
-  storageBucket: "desperdicio-guaira.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
+  storageBucket: "desperdicio-guaira.firebasestorage.app",
+  messagingSenderId: "878294685681",
+  appId: "1:878294685681:web:1077a6a0dc15a4b491d650",
+  measurementId: "G-J3CSCS58YF"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
   // Nome da coleção onde os registros serão guardados no Firestore
   const NOME_COLECAO = "desperdicio_guaira";
