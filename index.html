@@ -430,7 +430,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 44px;
+    min-width: 56px;
   }
 
   .grafico-barra {
@@ -445,6 +445,7 @@
     color: var(--verde-escuro);
     font-weight: 700;
     margin-bottom: 4px;
+    white-space: nowrap;
   }
 
   .grafico-legenda {
@@ -573,7 +574,7 @@
   <!-- Gráfico -->
   <section class="secao">
     <h2 class="secao-titulo">📊 Gráfico de Desperdício</h2>
-    <p class="secao-subtitulo">Escolha o período para ver o total desperdiçado agrupado.</p>
+    <p class="secao-subtitulo">Escolha o período para ver o total desperdiçado agrupado, em quilogramas (kg).</p>
 
     <div class="botoes-periodo">
       <button type="button" class="botao-periodo ativo" data-periodo="dia">Por Dia</button>
@@ -1135,7 +1136,7 @@
       const coluna = document.createElement("div");
       coluna.className = "grafico-coluna";
       coluna.innerHTML =
-        "<span class='grafico-valor'>" + valor.toFixed(1) + "</span>" +
+        "<span class='grafico-valor'>" + valor.toFixed(1) + " kg</span>" +
         "<div class='grafico-barra' style='height:" + alturaPixels + "px;'></div>" +
         "<span class='grafico-legenda'>" + chave + "</span>";
 
