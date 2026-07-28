@@ -471,31 +471,16 @@
 
   // =====================================================================
   // CONFIGURAÇÃO DO FIREBASE
-  // Preencha aqui as chaves do SEU projeto Firebase.
-  // Você encontra esses valores em: Console Firebase > Configurações do
-  // projeto > Geral > "Seus aplicativos" > SDK setup and configuration.
+  // Chaves do projeto "desperdicio-guaira", copiadas do Console Firebase.
   // =====================================================================
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAHJXX8bKwe4fomSoQA4PvVyW0qkrdSz9g",
-  authDomain: "desperdicio-guaira.firebaseapp.com",
-  projectId: "desperdicio-guaira",
-  storageBucket: "desperdicio-guaira.firebasestorage.app",
-  messagingSenderId: "878294685681",
-  appId: "1:878294685681:web:1077a6a0dc15a4b491d650",
-  measurementId: "G-J3CSCS58YF"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHJXX8bKwe4fomSoQA4PvVyW0qkrdSz9g",
+    authDomain: "desperdicio-guaira.firebaseapp.com",
+    projectId: "desperdicio-guaira",
+    storageBucket: "desperdicio-guaira.firebasestorage.app",
+    messagingSenderId: "878294685681",
+    appId: "1:878294685681:web:1077a6a0dc15a4b491d650"
+  };
 
   // Nome da coleção onde os registros serão guardados no Firestore
   const NOME_COLECAO = "desperdicio_guaira";
@@ -533,17 +518,17 @@ const analytics = getAnalytics(app);
       return;
     }
 
-    //try {
-     // const app = initializeApp(firebaseConfig);
-      //db = getFirestore(app);
-     // statusDot.className = "status-dot ok";
-     // statusTexto.textContent = "Conectado ao Firebase Firestore";
-     // await carregarRegistros();
-   // } catch (erro) {
-    //  console.error("Erro ao conectar no Firebase:", erro);
-   //   statusDot.className = "status-dot erro";
-   //   statusTexto.textContent = "Erro ao conectar no Firebase";
-  //  }
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      statusDot.className = "status-dot ok";
+      statusTexto.textContent = "Conectado ao Firebase Firestore";
+      await carregarRegistros();
+    } catch (erro) {
+      console.error("Erro ao conectar no Firebase:", erro);
+      statusDot.className = "status-dot erro";
+      statusTexto.textContent = "Erro ao conectar no Firebase";
+    }
   }
 
   // ---------------------------------------------------------------------
