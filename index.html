@@ -390,6 +390,72 @@
     display: none;
   }
 
+  /* Gráfico de desperdício */
+  .botoes-periodo {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .botao-periodo {
+    background: var(--cinza-claro);
+    color: var(--cinza-texto);
+    border: 1px solid var(--cinza-borda);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .botao-periodo:hover { background: var(--verde-claro); }
+
+  .botao-periodo.ativo {
+    background: var(--verde-medio);
+    color: var(--branco);
+    border-color: var(--verde-medio);
+  }
+
+  .grafico-area {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    min-height: 180px;
+    padding: 10px 4px 0;
+    overflow-x: auto;
+  }
+
+  .grafico-coluna {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+  }
+
+  .grafico-barra {
+    width: 28px;
+    background: linear-gradient(180deg, var(--verde-medio), var(--verde-escuro));
+    border-radius: 6px 6px 0 0;
+    transition: height 0.25s ease;
+  }
+
+  .grafico-valor {
+    font-size: 11px;
+    color: var(--verde-escuro);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .grafico-legenda {
+    font-size: 10px;
+    color: var(--cinza-texto);
+    margin-top: 6px;
+    text-align: center;
+    max-width: 60px;
+    overflow-wrap: break-word;
+  }
+
   .estado-vazio {
     text-align: center;
     padding: 30px 10px;
@@ -498,10 +564,27 @@
         <input type="number" id="inputRefeicoes" step="1" min="1" placeholder="Ex: 350" required>
       </div>
 
-      <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro</button>
+      <button type="submit" class="botao-salvar" id="botaoSalvar">Adicionar Registro</button>
       <button type="button" class="botao-cancelar" id="botaoCancelar">Cancelar edição</button>
       <div class="mensagem" id="mensagemForm"></div>
     </form>
+  </section>
+
+  <!-- Gráfico -->
+  <section class="secao">
+    <h2 class="secao-titulo">📊 Gráfico de Desperdício</h2>
+    <p class="secao-subtitulo">Escolha o período para ver o total desperdiçado agrupado.</p>
+
+    <div class="botoes-periodo">
+      <button type="button" class="botao-periodo ativo" data-periodo="dia">Por Dia</button>
+      <button type="button" class="botao-periodo" data-periodo="semana">Por Semana</button>
+      <button type="button" class="botao-periodo" data-periodo="mes">Por Mês</button>
+      <button type="button" class="botao-periodo" data-periodo="ano">Por Ano</button>
+    </div>
+
+    <div class="grafico-area" id="graficoArea">
+      <!-- as barrinhas do gráfico são geradas pelo JavaScript -->
+    </div>
   </section>
 
   <!-- Histórico -->
@@ -541,8 +624,17 @@
 </div>
 
 <script type="module">
+  // trabalho de Front End / Back End - sistema de controle de desperdício
+  // da merenda do Colégio Guaíra. a gente separou em blocos pra ficar
+  // mais fácil de entender: primeiro vem a conexão com o Firebase,
+  // depois as funções que calculam os números do dashboard, depois a
+  // tabela, e por último o gráfico (que foi a parte mais chata de fazer
+  // com sinceridade, mas no final funcionou)
+
   // =====================================================================
   // IMPORTAÇÃO DO FIREBASE (via CDN, sintaxe modular)
+  // usamos import direto do gstatic pq assim não precisa instalar nada
+  // com npm, só abre o index.html e já funciona
   // =====================================================================
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -559,7 +651,10 @@
 
   // =====================================================================
   // CONFIGURAÇÃO DO FIREBASE
-  // Chaves do projeto "desperdicio-guaira", copiadas do Console Firebase.
+  // essas chaves aqui a gente pegou direto do console do Firebase, em
+  // Configurações do projeto > Seus aplicativos. não tem segredo, só
+  // copiar e colar (elas não são "senha" de verdade, o que protege o
+  // banco de fato são as Regras lá no Firestore)
   // =====================================================================
   const firebaseConfig = {
     apiKey: "AIzaSyAHJXX8bKwe4fomSoQA4PvVyW0qkrdSz9g",
@@ -570,10 +665,12 @@
     appId: "1:878294685681:web:1077a6a0dc15a4b491d650"
   };
 
-  // Nome da coleção onde os registros serão guardados no Firestore
+  // nome da "tabela" (coleção) lá no Firestore onde tudo é guardado
   const NOME_COLECAO = "desperdicio_guaira";
 
-  // Elementos da tela que vamos atualizar com JavaScript
+  // pegando os elementos da tela que a gente vai mexer o tempo todo,
+  // já deixa tudo guardado em variável no comecinho pra não ficar
+  // repetindo document.getElementById em todo canto
   const statusDot = document.getElementById("statusDot");
   const statusTexto = document.getElementById("statusTexto");
   const avisoConfig = document.getElementById("avisoConfig");
@@ -587,11 +684,18 @@
   const tituloFormulario = document.getElementById("tituloFormulario");
   const avisoEdicao = document.getElementById("avisoEdicao");
   const mensagemForm = document.getElementById("mensagemForm");
+  const graficoArea = document.getElementById("graficoArea");
+  const botoesPeriodo = document.querySelectorAll(".botao-periodo");
+
+  // periodo que ta selecionado no grafico agora (comeca em "dia" mesmo)
+  let periodoSelecionado = "dia";
 
   // Guarda o id do registro sendo editado no momento, ou null se for um registro novo
   let idEmEdicao = null;
 
-  // Guardamos aqui os registros já carregados, para usar nos cálculos
+  // essa lista guarda os registros que já vieram do Firestore, é nela
+  // que a gente mexe pra calcular os cards, montar a tabela e o gráfico
+  // (evita ficar buscando no banco toda hora que precisa recalcular algo)
   let listaRegistros = [];
   let db = null;
 
@@ -600,6 +704,10 @@
 
   // ---------------------------------------------------------------------
   // Inicialização do Firebase
+  // essa função roda assim que a página abre (olha lá no final do
+  // arquivo, chamamos ela em iniciarFirebase()). primeiro confere se
+  // as chaves foram preenchidas, se não foi, já mostra o aviso amarelo
+  // e nem tenta conectar
   // ---------------------------------------------------------------------
   function firebaseFoiConfigurado() {
     return firebaseConfig.apiKey && firebaseConfig.projectId;
@@ -628,6 +736,9 @@
 
   // ---------------------------------------------------------------------
   // Ler registros do Firestore (getDocs)
+  // toda vez que salva, edita ou apaga alguma coisa, chamamos essa
+  // função de novo pra trazer os dados atualizados e redesenhar tudo
+  // (os cards, a tabela e o gráfico)
   // ---------------------------------------------------------------------
   async function carregarRegistros() {
     if (!db) return;
@@ -649,6 +760,7 @@
 
       atualizarDashboard();
       atualizarTabela();
+      atualizarGrafico();
     } catch (erro) {
       console.error("Erro ao carregar registros:", erro);
       mostrarMensagem("erro", "Não foi possível carregar os registros do Firebase.");
@@ -657,6 +769,10 @@
 
   // ---------------------------------------------------------------------
   // Calcular estatísticas do Dashboard usando reduce/forEach
+  // essa foi a parte que o professor pediu pra usar bastante função de
+  // array (reduce, forEach, etc) em vez de fazer com for tradicional.
+  // no começo achamos meio confuso, mas depois de fazer o total pegou
+  // o jeito e os outros cálculos ficaram mais rápido de escrever
   // ---------------------------------------------------------------------
   function atualizarDashboard() {
     const cardTotal = document.getElementById("cardTotal");
@@ -716,6 +832,9 @@
 
   // ---------------------------------------------------------------------
   // Montar a tabela de histórico usando forEach
+  // aqui a gente limpa a tabela inteira e desenha ela de novo do zero
+  // toda vez. não é o jeito mais "otimizado" mas pra quantidade de
+  // registro que a escola vai ter por dia, funciona sem travar nada
   // ---------------------------------------------------------------------
   function atualizarTabela() {
     corpoTabela.innerHTML = "";
@@ -767,14 +886,19 @@
   }
 
   function formatarData(dataTexto) {
-    // dataTexto chega no formato AAAA-MM-DD, convertemos para DD/MM/AAAA
+    // o input type="date" do html devolve sempre AAAA-MM-DD, mas
+    // no Brasil a gente lê data como DD/MM/AAAA, então só invertemos
+    // a ordem dos pedaços aqui
     const partes = dataTexto.split("-");
     if (partes.length !== 3) return dataTexto;
     return partes[2] + "/" + partes[1] + "/" + partes[0];
   }
 
   // ---------------------------------------------------------------------
-  // Salvar novo registro (addDoc)
+  // Salvar novo registro (addDoc) ou atualizar um existente (updateDoc)
+  // um único formulário serve pros dois casos, a diferença é só se
+  // a variável idEmEdicao tá preenchida ou não (ver função
+  // entrarModoEdicao logo abaixo pra entender melhor)
   // ---------------------------------------------------------------------
   formRegistro.addEventListener("submit", async function (evento) {
     evento.preventDefault();
@@ -795,7 +919,7 @@
     }
 
     botaoSalvar.disabled = true;
-    botaoSalvar.textContent = idEmEdicao ? "Atualizando..." : "Salvando...";
+    botaoSalvar.textContent = idEmEdicao ? "Atualizando..." : "Adicionando...";
 
     try {
       if (idEmEdicao) {
@@ -832,7 +956,7 @@
       mostrarMensagem("erro", idEmEdicao ? "Não foi possível atualizar o registro." : "Não foi possível salvar o registro.");
     } finally {
       botaoSalvar.disabled = false;
-      botaoSalvar.textContent = idEmEdicao ? "Atualizar Registro no Firebase" : "Salvar Registro";
+      botaoSalvar.textContent = idEmEdicao ? "Atualizar Registro" : "Adicionar Registro";
     }
   });
 
@@ -856,7 +980,7 @@
     tituloFormulario.textContent = "✏️ Editar Registro de Descarte";
     avisoEdicao.style.display = "block";
     botaoCancelar.style.display = "block";
-    botaoSalvar.textContent = "Atualizar Registro no Firebase";
+    botaoSalvar.textContent = "Atualizar Registro";
 
     // Rola a tela até o formulário, para o usuário ver que entrou em edição
     formRegistro.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -873,7 +997,7 @@
     tituloFormulario.textContent = "➕ Registrar Descarte de Merenda";
     avisoEdicao.style.display = "none";
     botaoCancelar.style.display = "none";
-    botaoSalvar.textContent = "Salvar Registro";
+    botaoSalvar.textContent = "Adicionar Registro";
   }
 
   botaoCancelar.addEventListener("click", function () {
@@ -882,6 +1006,8 @@
 
   // ---------------------------------------------------------------------
   // Excluir registro (deleteDoc)
+  // colocamos um confirm() antes de excluir de verdade, pra evitar
+  // que alguém clique sem querer e apague um dia de registro à toa
   // ---------------------------------------------------------------------
   async function excluirRegistro(id) {
     if (!db) return;
@@ -911,6 +1037,126 @@
       mensagemForm.textContent = "";
     }, 4000);
   }
+
+  // ---------------------------------------------------------------------
+  // GRÁFICO DE DESPERDÍCIO
+  // essa parte a gente fez por último, depois que o resto do sistema
+  // já tava funcionando. a ideia é: pega os registros, agrupa por
+  // dia/semana/mes/ano (dependendo do botao que a pessoa clicou) e
+  // desenha uma barrinha pra cada grupo. não usamos nenhuma biblioteca
+  // de gráfico pronta (tipo chart.js), só fizemos as barras com div e
+  // CSS mesmo, dá pra fazer assim tambem e funciona bem
+  // ---------------------------------------------------------------------
+
+  // recebe uma data no formato "AAAA-MM-DD" e devolve a "chave" do grupo
+  // dependendo do período escolhido. isso é o coração da agregação
+  function obterChaveDoPeriodo(dataTexto, periodo) {
+    const partes = dataTexto.split("-");
+    const ano = partes[0];
+    const mes = partes[1];
+    const dia = partes[2];
+
+    if (periodo === "dia") {
+      // cada dia vira uma barra separada (dd/mm)
+      return dia + "/" + mes;
+    }
+
+    if (periodo === "mes") {
+      // agrupa tudo que caiu no mesmo mes/ano
+      return mes + "/" + ano;
+    }
+
+    if (periodo === "ano") {
+      // agrupa por ano only
+      return ano;
+    }
+
+    if (periodo === "semana") {
+      // pra semana a gente usou um jeito mais simples: pega o numero
+      // da semana do ano usando a conta que o professor passou
+      // (nao é o calculo ISO 8601 "oficial", mas pro que precisamos
+      // aqui, de comparar semana a semana, já resolve numa boa)
+      const dataObjeto = new Date(Number(ano), Number(mes) - 1, Number(dia));
+      const primeiroDiaDoAno = new Date(Number(ano), 0, 1);
+      const diasPassados = Math.floor((dataObjeto - primeiroDiaDoAno) / (1000 * 60 * 60 * 24));
+      const numeroDaSemana = Math.ceil((diasPassados + primeiroDiaDoAno.getDay() + 1) / 7);
+      return "Sem " + numeroDaSemana + "/" + ano;
+    }
+
+    // se cair aqui é pq algo deu errado, mas devolve a data mesmo assim
+    return dataTexto;
+  }
+
+  // pega a lista de registros e agrupa o peso por período, usando reduce
+  // (o resultado é um objeto tipo { "27/07": 8.5, "28/07": 3.2, ... })
+  function agruparPorPeriodo(registros, periodo) {
+    return registros.reduce(function (grupos, registro) {
+      const chave = obterChaveDoPeriodo(registro.data, periodo);
+
+      if (!grupos[chave]) {
+        grupos[chave] = 0;
+      }
+
+      grupos[chave] = grupos[chave] + Number(registro.peso);
+      return grupos;
+    }, {});
+  }
+
+  // desenha as barrinhas do gráfico na tela, de acordo com o período atual
+  function atualizarGrafico() {
+    graficoArea.innerHTML = "";
+
+    if (listaRegistros.length === 0) {
+      graficoArea.innerHTML = "<p style='color:#5a6b64; font-size:13px;'>Sem dados suficientes pra montar o gráfico ainda.</p>";
+      return;
+    }
+
+    const grupos = agruparPorPeriodo(listaRegistros, periodoSelecionado);
+
+    // pegamos as chaves (as datas/semanas/meses/anos) e ordenamos, pra
+    // as barras aparecerem em ordem cronologica e nao do jeito que
+    // o firestore devolveu
+    const chavesOrdenadas = Object.keys(grupos).sort();
+
+    // precisamos saber qual foi o maior valor pra calcular a altura
+    // de cada barra em proporção (senão fica tudo do mesmo tamanho)
+    const maiorValor = chavesOrdenadas.reduce(function (maior, chave) {
+      return grupos[chave] > maior ? grupos[chave] : maior;
+    }, 0);
+
+    chavesOrdenadas.forEach(function (chave) {
+      const valor = grupos[chave];
+
+      // regra de 3 simples pra transformar o kg em altura de pixel
+      // (deixamos uma altura minima de 6px só pra barra nao sumir
+      // quando o valor for bem pequeno)
+      const alturaPixels = maiorValor > 0 ? Math.max((valor / maiorValor) * 140, 6) : 6;
+
+      const coluna = document.createElement("div");
+      coluna.className = "grafico-coluna";
+      coluna.innerHTML =
+        "<span class='grafico-valor'>" + valor.toFixed(1) + "</span>" +
+        "<div class='grafico-barra' style='height:" + alturaPixels + "px;'></div>" +
+        "<span class='grafico-legenda'>" + chave + "</span>";
+
+      graficoArea.appendChild(coluna);
+    });
+  }
+
+  // liga o clique de cada botão de período (dia/semana/mes/ano)
+  botoesPeriodo.forEach(function (botao) {
+    botao.addEventListener("click", function () {
+      periodoSelecionado = botao.getAttribute("data-periodo");
+
+      // tira o "ativo" de todos e coloca só no botao clicado
+      botoesPeriodo.forEach(function (b) {
+        b.classList.remove("ativo");
+      });
+      botao.classList.add("ativo");
+
+      atualizarGrafico();
+    });
+  });
 
   // ---------------------------------------------------------------------
   // Exportar os registros para um arquivo CSV (relatório externo)
@@ -961,7 +1207,7 @@
     exportarCSV();
   });
 
-  // Inicia tudo quando a página carrega
+  // é essa linha que faz tudo começar quando a página termina de carregar
   iniciarFirebase();
 </script>
 
