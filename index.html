@@ -116,7 +116,11 @@
   }
 
   @media (min-width: 620px) {
-    .dashboard { grid-template-columns: repeat(3, 1fr); }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (min-width: 860px) {
+    .dashboard { grid-template-columns: repeat(4, 1fr); }
   }
 
   .card {
@@ -392,6 +396,15 @@
       <div class="card-valor" id="cardMaior">0.0 <small>kg</small></div>
       <div class="card-sub" id="cardMaiorSub">Nenhum dado ainda</div>
     </div>
+
+    <div class="card">
+      <div class="card-topo">
+        <span class="card-label">Desperdício por Refeição</span>
+        <span class="card-icone">🍽️</span>
+      </div>
+      <div class="card-valor" id="cardPorRefeicao">0 <small>g</small></div>
+      <div class="card-sub" id="cardPorRefeicaoSub">Sem refeições registradas</div>
+    </div>
   </section>
 
   <!-- Formulário -->
@@ -416,6 +429,11 @@
         <input type="text" id="inputCardapio" placeholder="Ex: Polenta com Carne Moída e Salada" required>
       </div>
 
+      <div class="campo">
+        <label for="inputRefeicoes">Número de Refeições Servidas</label>
+        <input type="number" id="inputRefeicoes" step="1" min="1" placeholder="Ex: 350" required>
+      </div>
+
       <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro no Firebase</button>
       <div class="mensagem" id="mensagemForm"></div>
     </form>
@@ -435,6 +453,7 @@
             <th>Data</th>
             <th>Cardápio</th>
             <th>Peso (kg)</th>
+            <th>Refeições</th>
             <th>Ação</th>
           </tr>
         </thead>
@@ -547,7 +566,8 @@
           id: documento.id,
           data: documento.data().data,
           cardapio: documento.data().cardapio,
-          peso: documento.data().peso
+          peso: documento.data().peso,
+          refeicoes: documento.data().refeicoes || 0
         };
       });
 
@@ -569,6 +589,8 @@
     const cardMediaSub = document.getElementById("cardMediaSub");
     const cardMaior = document.getElementById("cardMaior");
     const cardMaiorSub = document.getElementById("cardMaiorSub");
+    const cardPorRefeicao = document.getElementById("cardPorRefeicao");
+    const cardPorRefeicaoSub = document.getElementById("cardPorRefeicaoSub");
 
     const totalRegistros = listaRegistros.length;
 
@@ -599,6 +621,21 @@
       cardMaior.innerHTML = "0.0 <small>kg</small>";
       cardMaiorSub.textContent = "Nenhum dado ainda";
     }
+
+    // Desperdício por refeição: soma das refeições servidas com reduce()
+    const totalRefeicoes = listaRegistros.reduce(function (acumulado, registro) {
+      return acumulado + Number(registro.refeicoes);
+    }, 0);
+
+    if (totalRefeicoes > 0) {
+      // Convertendo kg para gramas antes de dividir pelas refeições
+      const gramasPorRefeicao = (totalKg * 1000) / totalRefeicoes;
+      cardPorRefeicao.innerHTML = Math.round(gramasPorRefeicao) + " <small>g</small>";
+      cardPorRefeicaoSub.textContent = "Em " + totalRefeicoes + " refeição(ões) servida(s)";
+    } else {
+      cardPorRefeicao.innerHTML = "0 <small>g</small>";
+      cardPorRefeicaoSub.textContent = "Sem refeições registradas";
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -625,6 +662,7 @@
         "<td>" + dataFormatada + "</td>" +
         "<td>" + registro.cardapio + "</td>" +
         "<td><span class='peso-tag'>" + Number(registro.peso).toFixed(1) + " kg</span></td>" +
+        "<td>" + Number(registro.refeicoes) + "</td>" +
         "<td><button class='botao-excluir' data-id='" + registro.id + "'>Excluir</button></td>";
 
       corpoTabela.appendChild(linha);
@@ -661,8 +699,9 @@
     const data = document.getElementById("inputData").value;
     const cardapio = document.getElementById("inputCardapio").value.trim();
     const peso = document.getElementById("inputPeso").value;
+    const refeicoes = document.getElementById("inputRefeicoes").value;
 
-    if (!data || !cardapio || !peso) {
+    if (!data || !cardapio || !peso || !refeicoes) {
       mostrarMensagem("erro", "Preencha todos os campos antes de salvar.");
       return;
     }
@@ -676,12 +715,14 @@
         data: data,
         cardapio: cardapio,
         peso: Number(peso),
+        refeicoes: Number(refeicoes),
         criadoEm: new Date().toISOString()
       });
 
       mostrarMensagem("sucesso", "Registro salvo com sucesso.");
       formRegistro.reset();
       document.getElementById("inputData").valueAsDate = new Date();
+      // O reset() já limpa o campo de refeições junto com os demais campos do form
 
       await carregarRegistros();
     } catch (erro) {
