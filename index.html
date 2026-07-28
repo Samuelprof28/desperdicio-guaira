@@ -498,7 +498,7 @@
         <input type="number" id="inputRefeicoes" step="1" min="1" placeholder="Ex: 350" required>
       </div>
 
-      <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro no Firebase</button>
+      <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro</button>
       <button type="button" class="botao-cancelar" id="botaoCancelar">Cancelar edição</button>
       <div class="mensagem" id="mensagemForm"></div>
     </form>
@@ -832,7 +832,7 @@
       mostrarMensagem("erro", idEmEdicao ? "Não foi possível atualizar o registro." : "Não foi possível salvar o registro.");
     } finally {
       botaoSalvar.disabled = false;
-      botaoSalvar.textContent = idEmEdicao ? "Atualizar Registro no Firebase" : "Salvar Registro no Firebase";
+      botaoSalvar.textContent = idEmEdicao ? "Atualizar Registro no Firebase" : "Salvar Registro";
     }
   });
 
@@ -873,7 +873,7 @@
     tituloFormulario.textContent = "➕ Registrar Descarte de Merenda";
     avisoEdicao.style.display = "none";
     botaoCancelar.style.display = "none";
-    botaoSalvar.textContent = "Salvar Registro no Firebase";
+    botaoSalvar.textContent = "Salvar Registro";
   }
 
   botaoCancelar.addEventListener("click", function () {
