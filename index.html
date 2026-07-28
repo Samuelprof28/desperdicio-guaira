@@ -330,6 +330,66 @@
 
   .botao-excluir:hover { background: #f8c9c4; }
 
+  .botao-editar {
+    background: var(--verde-claro);
+    color: var(--verde-escuro);
+    border: none;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 6px;
+  }
+
+  .botao-editar:hover { background: #d3ecdc; }
+
+  .acoes-tabela {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .botao-exportar {
+    background: var(--branco);
+    color: var(--verde-escuro);
+    border: 1px solid var(--verde-medio);
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .botao-exportar:hover { background: var(--verde-claro); }
+
+  .botao-cancelar {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--branco);
+    color: var(--cinza-texto);
+    border: 1px solid var(--cinza-borda);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+  }
+
+  .botao-cancelar:hover { background: var(--cinza-claro); }
+
+  .aviso-edicao {
+    background: #eef3ff;
+    border: 1px solid #c9d9ff;
+    color: #2b4a8f;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+  }
+
   .estado-vazio {
     text-align: center;
     padding: 30px 10px;
@@ -409,8 +469,12 @@
 
   <!-- Formulário -->
   <section class="secao">
-    <h2 class="secao-titulo">➕ Registrar Descarte de Merenda</h2>
+    <h2 class="secao-titulo" id="tituloFormulario">➕ Registrar Descarte de Merenda</h2>
     <p class="secao-subtitulo">Insira os dados do descarte para armazenar no Firebase Firestore.</p>
+
+    <div class="aviso-edicao" id="avisoEdicao">
+      ✏️ Você está editando um registro existente. Altere os campos e clique em "Atualizar Registro" para salvar as mudanças.
+    </div>
 
     <form id="formRegistro">
       <div class="linha-dupla">
@@ -435,6 +499,7 @@
       </div>
 
       <button type="submit" class="botao-salvar" id="botaoSalvar">Salvar Registro no Firebase</button>
+      <button type="button" class="botao-cancelar" id="botaoCancelar">Cancelar edição</button>
       <div class="mensagem" id="mensagemForm"></div>
     </form>
   </section>
@@ -443,7 +508,10 @@
   <section class="secao">
     <div class="tabela-topo">
       <h2 class="secao-titulo" style="margin-bottom:0;">📋 Histórico de Registros</h2>
-      <span class="contador-registros" id="contadorRegistros">0 registros</span>
+      <div class="acoes-tabela">
+        <button type="button" class="botao-exportar" id="botaoExportar">⬇ Exportar CSV</button>
+        <span class="contador-registros" id="contadorRegistros">0 registros</span>
+      </div>
     </div>
 
     <div class="tabela-wrapper">
@@ -482,6 +550,7 @@
     collection,
     getDocs,
     addDoc,
+    updateDoc,
     deleteDoc,
     doc,
     query,
@@ -513,7 +582,14 @@
   const contadorRegistros = document.getElementById("contadorRegistros");
   const formRegistro = document.getElementById("formRegistro");
   const botaoSalvar = document.getElementById("botaoSalvar");
+  const botaoCancelar = document.getElementById("botaoCancelar");
+  const botaoExportar = document.getElementById("botaoExportar");
+  const tituloFormulario = document.getElementById("tituloFormulario");
+  const avisoEdicao = document.getElementById("avisoEdicao");
   const mensagemForm = document.getElementById("mensagemForm");
+
+  // Guarda o id do registro sendo editado no momento, ou null se for um registro novo
+  let idEmEdicao = null;
 
   // Guardamos aqui os registros já carregados, para usar nos cálculos
   let listaRegistros = [];
@@ -663,7 +739,10 @@
         "<td>" + registro.cardapio + "</td>" +
         "<td><span class='peso-tag'>" + Number(registro.peso).toFixed(1) + " kg</span></td>" +
         "<td>" + Number(registro.refeicoes) + "</td>" +
-        "<td><button class='botao-excluir' data-id='" + registro.id + "'>Excluir</button></td>";
+        "<td>" +
+          "<button class='botao-editar' data-id='" + registro.id + "'>Editar</button>" +
+          "<button class='botao-excluir' data-id='" + registro.id + "'>Excluir</button>" +
+        "</td>";
 
       corpoTabela.appendChild(linha);
     });
@@ -674,6 +753,15 @@
       botao.addEventListener("click", function () {
         const idRegistro = botao.getAttribute("data-id");
         excluirRegistro(idRegistro);
+      });
+    });
+
+    // Adiciona o evento de clique em cada botão "Editar" recém-criado
+    const botoesEditar = document.querySelectorAll(".botao-editar");
+    botoesEditar.forEach(function (botao) {
+      botao.addEventListener("click", function () {
+        const idRegistro = botao.getAttribute("data-id");
+        entrarModoEdicao(idRegistro);
       });
     });
   }
@@ -707,31 +795,89 @@
     }
 
     botaoSalvar.disabled = true;
-    botaoSalvar.textContent = "Salvando...";
+    botaoSalvar.textContent = idEmEdicao ? "Atualizando..." : "Salvando...";
 
     try {
-      const referenciaColecao = collection(db, NOME_COLECAO);
-      await addDoc(referenciaColecao, {
-        data: data,
-        cardapio: cardapio,
-        peso: Number(peso),
-        refeicoes: Number(refeicoes),
-        criadoEm: new Date().toISOString()
-      });
+      if (idEmEdicao) {
+        // Modo edição: atualiza o documento existente com updateDoc
+        const referenciaDocumento = doc(db, NOME_COLECAO, idEmEdicao);
+        await updateDoc(referenciaDocumento, {
+          data: data,
+          cardapio: cardapio,
+          peso: Number(peso),
+          refeicoes: Number(refeicoes)
+        });
 
-      mostrarMensagem("sucesso", "Registro salvo com sucesso.");
-      formRegistro.reset();
-      document.getElementById("inputData").valueAsDate = new Date();
-      // O reset() já limpa o campo de refeições junto com os demais campos do form
+        mostrarMensagem("sucesso", "Registro atualizado com sucesso.");
+        sairModoEdicao();
+      } else {
+        // Modo criação: adiciona um novo documento com addDoc
+        const referenciaColecao = collection(db, NOME_COLECAO);
+        await addDoc(referenciaColecao, {
+          data: data,
+          cardapio: cardapio,
+          peso: Number(peso),
+          refeicoes: Number(refeicoes),
+          criadoEm: new Date().toISOString()
+        });
+
+        mostrarMensagem("sucesso", "Registro salvo com sucesso.");
+        formRegistro.reset();
+        document.getElementById("inputData").valueAsDate = new Date();
+      }
 
       await carregarRegistros();
     } catch (erro) {
       console.error("Erro ao salvar registro:", erro);
-      mostrarMensagem("erro", "Não foi possível salvar o registro.");
+      mostrarMensagem("erro", idEmEdicao ? "Não foi possível atualizar o registro." : "Não foi possível salvar o registro.");
     } finally {
       botaoSalvar.disabled = false;
-      botaoSalvar.textContent = "Salvar Registro no Firebase";
+      botaoSalvar.textContent = idEmEdicao ? "Atualizar Registro no Firebase" : "Salvar Registro no Firebase";
     }
+  });
+
+  // ---------------------------------------------------------------------
+  // Entrar em modo de edição: preenche o formulário com os dados do registro
+  // ---------------------------------------------------------------------
+  function entrarModoEdicao(id) {
+    const registro = listaRegistros.find(function (item) {
+      return item.id === id;
+    });
+
+    if (!registro) return;
+
+    idEmEdicao = id;
+
+    document.getElementById("inputData").value = registro.data;
+    document.getElementById("inputCardapio").value = registro.cardapio;
+    document.getElementById("inputPeso").value = registro.peso;
+    document.getElementById("inputRefeicoes").value = registro.refeicoes;
+
+    tituloFormulario.textContent = "✏️ Editar Registro de Descarte";
+    avisoEdicao.style.display = "block";
+    botaoCancelar.style.display = "block";
+    botaoSalvar.textContent = "Atualizar Registro no Firebase";
+
+    // Rola a tela até o formulário, para o usuário ver que entrou em edição
+    formRegistro.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ---------------------------------------------------------------------
+  // Sair do modo de edição e voltar ao estado de cadastro normal
+  // ---------------------------------------------------------------------
+  function sairModoEdicao() {
+    idEmEdicao = null;
+    formRegistro.reset();
+    document.getElementById("inputData").valueAsDate = new Date();
+
+    tituloFormulario.textContent = "➕ Registrar Descarte de Merenda";
+    avisoEdicao.style.display = "none";
+    botaoCancelar.style.display = "none";
+    botaoSalvar.textContent = "Salvar Registro no Firebase";
+  }
+
+  botaoCancelar.addEventListener("click", function () {
+    sairModoEdicao();
   });
 
   // ---------------------------------------------------------------------
@@ -765,6 +911,55 @@
       mensagemForm.textContent = "";
     }, 4000);
   }
+
+  // ---------------------------------------------------------------------
+  // Exportar os registros para um arquivo CSV (relatório externo)
+  // ---------------------------------------------------------------------
+  function exportarCSV() {
+    if (listaRegistros.length === 0) {
+      mostrarMensagem("erro", "Não há registros para exportar.");
+      return;
+    }
+
+    // Cabeçalho do arquivo CSV
+    const cabecalho = ["Data", "Cardapio", "Peso (kg)", "Refeicoes Servidas"];
+    const linhas = [cabecalho.join(";")];
+
+    // Uma linha de CSV para cada registro, usando forEach
+    listaRegistros.forEach(function (registro) {
+      const dataFormatada = formatarData(registro.data);
+
+      // Colocamos o cardápio entre aspas, caso o texto tenha ponto e vírgula
+      const cardapioSeguro = '"' + registro.cardapio.replace(/"/g, '""') + '"';
+
+      const linha = [
+        dataFormatada,
+        cardapioSeguro,
+        Number(registro.peso).toFixed(1).replace(".", ","),
+        Number(registro.refeicoes)
+      ];
+
+      linhas.push(linha.join(";"));
+    });
+
+    const conteudoCSV = linhas.join("\n");
+
+    // Adiciona o BOM (\uFEFF) para o Excel reconhecer acentos corretamente
+    const blob = new Blob(["\uFEFF" + conteudoCSV], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "desperdicio-guaira-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  botaoExportar.addEventListener("click", function () {
+    exportarCSV();
+  });
 
   // Inicia tudo quando a página carrega
   iniciarFirebase();
