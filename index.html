@@ -533,17 +533,17 @@ const analytics = getAnalytics(app);
       return;
     }
 
-    try {
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      statusDot.className = "status-dot ok";
-      statusTexto.textContent = "Conectado ao Firebase Firestore";
-      await carregarRegistros();
-    } catch (erro) {
-      console.error("Erro ao conectar no Firebase:", erro);
-      statusDot.className = "status-dot erro";
-      statusTexto.textContent = "Erro ao conectar no Firebase";
-    }
+    //try {
+     // const app = initializeApp(firebaseConfig);
+      //db = getFirestore(app);
+     // statusDot.className = "status-dot ok";
+     // statusTexto.textContent = "Conectado ao Firebase Firestore";
+     // await carregarRegistros();
+   // } catch (erro) {
+    //  console.error("Erro ao conectar no Firebase:", erro);
+   //   statusDot.className = "status-dot erro";
+   //   statusTexto.textContent = "Erro ao conectar no Firebase";
+  //  }
   }
 
   // ---------------------------------------------------------------------
